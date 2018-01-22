@@ -7,31 +7,26 @@
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 
-var containers = []; // Contient tous les blocks tetris
-var currentContainer = null;
-
-var unit = 20; // Unité du jeu (en pixel)
+var unit = 20; // Unite du jeu (en pixel)
 
 var width = 15; // in unit
 var height = 20; // in unit
 
-var move = 'none'; // Correspond au movement défini par les touches directionnelles
+var move = 'none'; // Correspond au movement defini par les touches directionnelles
 
-var loopBeforeGenerating = 5; // Nombre de boucle avant de générer un nouveau block tetris
-var currentLoopBeforeGenerating = loopBeforeGenerating;
-
-
-var lateralStop = 'none';
 var boost = false;
 var speed = 500;
 var boostSpeed = 45;
 var animation;
-var map = [];
+var map = []; // Contient les blocks qui seront positionnes
 
+var collision = 'none';
+
+var container; // Contient le block courant (qui est en mouvement)
 
 // Structure d'un container (block tetris)
 function Container (){
-    this.position = {x : Math.floor(width / 2), y : 0};
+    this.position = {x : Math.floor(width / 2), y : 0}; // Positionne le block au milieu
     this.blocks = getRandomBlocks();
     this.color = "#F00000";
     this.moving = true;
@@ -73,6 +68,7 @@ var copy = [
     [0, 0, 0, 0]
 ];
 
+
 /* -----------------------------
 
        INITIATLISATION
@@ -86,14 +82,18 @@ function init() {
     // Initialisation de la map
     initMap();
 
-    // Définit une couleur de fond
-    setFillStyle('#ff2f2f');
+    // Definit une couleur de fond
+    setFillStyle('#f00');
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    clear();
+    clear(); // Efface le fond
+    
+    // Lance le jeu
     animation = setInterval(loop, speed);
+    generateContainer();
 }
 
 init();
+
 
 /* -----------------------------
 
@@ -101,6 +101,28 @@ init();
 
  -----------------------------   */
 
+// Efface la zone de jeu
+function clear(){
+    ctx.clearRect(unit, 0, canvas.width - 2 * unit, canvas.height - unit);
+}
+
+// Renvoie un element aleatoire dans un tableau
+function getRandomItem(array){
+    return array[Math.floor(Math.random()*array.length)];
+}
+
+// Defini la couleur de remplissage
+function setFillStyle(color){
+    ctx.fillStyle = color;
+}
+
+/* -----------------------------
+
+       FONCTIONS DE JEU
+
+ -----------------------------   */
+
+// Initailse la map
 function initMap(){
     for(var i = 0; i < height; i++){
         map[i] = [];
@@ -110,91 +132,51 @@ function initMap(){
     }
 }
 
-// Renvoie une valeur aléatoire dans un tableau
-function getRandomItem(array){
-    return array[Math.floor(Math.random()*array.length)];
-}
-
-// Renvoie un modèle tetris aléatoire
+// Renvoie un modèle tetris aleatoire
 function getRandomBlocks(){
     return getRandomItem(containerModels);
 }
 
-// Défini la couleur de remplissage
-function setFillStyle(color){
-    ctx.fillStyle = color;
-}
-
-// Génére et ajoute un nouveau block tetris
+// Genere et ajoute un nouveau block tetris
 function generateContainer(){
-    var container = new Container();
-    if(currentContainer == null){
-        currentContainer = 0;
-    }
-    currentContainer++;
-    containers.push(container);
+    container = new Container();
 }
 
 // Dessine les blocks tetris
-function drawContainers (){
-    clear();
+function drawContainer(){
     ctx.fillStyle = 'black';
     
-    // Parcours les containers
-    for(var i = 0; i < containers.length; i++){
-        var container = containers[i];
-        if(container.moving == true){
-            
-            var blocks = containers[i].blocks;
+    if(container.moving == true){
+        // Parcours les lignes
+        for(var u = 0; u < container.blocks.length; u++){
+            for(var k = 0; k < container.blocks[u].length; k++){
+                var index = container.blocks[u][k];
 
-            // Parcours les blocks
-            for(var u = 0; u < blocks.length; u++){
-                var row = blocks[u];
-
-                // Parcours les lignes
-                for(var k = 0; k < row.length; k++){
-                    var index = row[k];
-
-                    // Si j'ai un bloc à cet endroit précis
-                    if(row[k] == 1){
-                        ctx.fillRect((container.position.x + k) * unit, (container.position.y + u) * unit, unit, unit);
-                    }
+                // Si j'ai un bloc à cet endroit precis
+                if(index == 1){
+                    ctx.fillRect((container.position.x + k) * unit, (container.position.y + u) * unit, unit, unit);
                 }
             }
-            
         }
     }
 }
 
-// Met à jour les blocks tetris
-function updateContainers(collision){
-    
-    // Parcours les containers
-    for(var i = 0; i < containers.length; i++){        
-        if(move == 'right'){
-            containers[i].position.x += 1;
-        }else if(move == 'left'){
-            containers[i].position.x -= 1;
-        }else if(move == 'bottom'){
-            containers[i].position.y += 1;
-        }else{
-            containers[i].position.y += 1;
-        }
+// Met à jour la position du block courant
+function updateContainer(collision){  
+    if(move == 'right'){
+        container.position.x += 1;
+    }else if(move == 'left'){
+        container.position.x -= 1;
+    }else if(move == 'bottom'){
+        container.position.y += 1;
+    }else{
+        container.position.y += 1;
     }
 }
 
-// Effectue la rotation d'un block tetris
+// Effectue la rotation d'un block
 function rotate(container){
-    
-    // Deplace les blocks dans un tableau de copie
-    for(var k = 0; k < container.blocks.length; k++){
-        for(var u = 0; u < container.blocks[k].length; u++){
-
-            if(container.blocks[k][u] == 1){
-
-            }
-        }
-    }
+        
     // Deplace les blocks dans un tableau de copie
     for(var k = 0; k < container.blocks.length; k++){
         for(var u = 0; u < container.blocks[k].length; u++){
@@ -222,18 +204,13 @@ function rotate(container){
     }
 }
 
-// Efface les blocks
-function clear(){
-    ctx.clearRect(unit, 0, canvas.width - 2 * unit, canvas.height - unit);
-}
-
 // Definit la vitesse de rafraichissement du jeu
 function setGameSpeed(speed){
     clearInterval(animation);
     animation = setInterval(loop, speed);
 }
 
-// Définit l'activation du boost de rapidité
+// Definit l activation du boost de rapidite
 function setBoost(activate){
     clearInterval(animation);
     if(activate){
@@ -245,7 +222,23 @@ function setBoost(activate){
     }
 }
 
+// Dessine la limite (en haut du jeu)
+function drawLimit(){
+    ctx.beginPath();
+    ctx.setLineDash([5]);
+    ctx.moveTo(unit, unit);
+    ctx.lineTo(unit * (width + 1), unit);
+    ctx.stroke();
+}
 
+// Dessine les elements
+function drawElements(){
+    drawContainer();
+    drawMap();
+    drawLimit();
+}
+
+// Verifie qu une ligne horizontale est complete
 function checkLines(){
     for(var i = 0; i < height; i++){
         var total = 0;
@@ -267,8 +260,9 @@ function checkLines(){
     }
 }
 
-// Revoie le côté dans lequel on se cogne (renvoie none si il n'y a pas de collision)
+// Revoie le cote dans lequel on se cogne (renvoie none si il n y a pas de collision)
 function checkCollision(container){
+    // Verifie si on touche le sol OU un block dans la map
     for(var i = 0; i < container.blocks.length; i++){
         for(var j = 0; j < container.blocks[i].length; j++){
             if(container.blocks[i][j] == 1){
@@ -280,7 +274,6 @@ function checkCollision(container){
                     return 'bottom';
                 }
             
-                
                 for(var k = 0; k < height; k++){
                     for(var l = 0; l < width; l++){
                         if(y == k && x == (l+1) && map[k][l] == 1 && (move == 'none' || move == 'bottom')){
@@ -292,12 +285,13 @@ function checkCollision(container){
             }
         }
     }
+    
+    // Verifie si on touche un cote (de mur OU de la map)
     for(var i = 0; i < container.blocks.length; i++){
         for(var j = 0; j < container.blocks[i].length; j++){
             if(container.blocks[i][j] == 1){
                 var x = container.position.x + j;
                 var y = container.position.y + i;
-                
                 
                 for(var k = 0; k < height; k++){
                     for(var l = 0; l < width; l++){
@@ -311,8 +305,7 @@ function checkCollision(container){
                     }
                 }
 
-                
-                // Si le bloc est a coté d'un obstacle
+                // Si le bloc est a cote d'un obstacle
                 if(x == 1){
                     return 'left';
                 }else if(x == width){
@@ -322,97 +315,24 @@ function checkCollision(container){
             }
         }
     }
+    
     return 'none';
 }
 
-/* -----------------------------
+// Dessine la map (blocks positionnes)
+function drawMap(){
+    for(var i = 0; i < height; i++){
+        for(var j = 0; j < width; j++){
 
-             LOOP
-
- -----------------------------   */
-
-
-generateContainer();
-
-var collision = 'none';
-
-function loop(){
-    checkLines();
-
-    // Recupère s'il y a une collision
-    collision = checkCollision(containers[containers.length-1]);
-    
-    
-    
-    // Traitement de l'information de la collision latérale
-    if((move == 'right' && collision == 'right') || (move == 'left' && collision == 'left')){ // S'il y a une collision, on arrete de se déplacer horizontalement et on change le boost en mode normal
-        move = 'none';
-        boost = false;
-        setGameSpeed(speed);
-    }
-    
-    // Traitement de l'information de la collision verticale
-    if(collision == 'bottom'){ // Si le block courant touche le sol
-        containers[containers.length-1].moving = false;
-    }
-
-    
-    // Si le block courant n'est plus en mouvement, on créait un nouveau block
-    if(containers[containers.length-1].moving == false){
-
-        // CODE A DEBUGGER
-        container = containers[containers.length-1];
-        for(var i = 0; i < container.blocks.length; i++){
-            for(var j = 0; j < container.blocks[i].length; j++){
-                if(container.blocks[i][j] == 1){
-                    var x = container.position.x + j;
-                    var y = container.position.y + i;
-
-                    if(map[y-1]){
-                        map[y-1][x-1] = 1;
-                    }
-                }
-            }
-        }
-        
-        generateContainer();
-    }
-    
-    for(var i = 0; i < containers[containers.length-1].blocks.length; i++){
-        for(var j = 0; j < containers[containers.length-1].blocks[i].length; j++){
-            
-            if(containers[containers.length-1].blocks[i][j] == 1){
-                var x = containers[containers.length-1].position.x + j;
-                var y = containers[containers.length-1].position.y + i;
+            // Si j'ai un bloc à cet endroit precis
+            if(map[i][j] == 1){
+                ctx.fillRect((j + 1) * unit, (i + 1) * unit, unit, unit);
             }
         }
     }
-    
-    // On met à jour la position des blocks puis on les affiche
-    updateContainers(collision);
-    drawElements();
-    
-    
-    if(checkLose(containers[containers.length-1])){
-        alert('perdu !');
-    }
 }
 
-function drawLimit(){
-    ctx.beginPath();
-    ctx.setLineDash([5]);
-    ctx.moveTo(unit, unit);
-    ctx.lineTo(unit * (width + 1), unit);
-    ctx.stroke();
-}
-
-function drawElements(){
-    drawContainers();
-    drawMap();
-    drawLimit();
-}
-
-
+// Verifie si le joueur a perdu
 function checkLose(container){
     for(var i = 0; i < container.blocks.length; i++){
         for(var j = 0; j < container.blocks[i].length; j++){
@@ -434,15 +354,79 @@ function checkLose(container){
     return false;
 }
 
-function drawMap(){
-    for(var i = 0; i < height; i++){
-        for(var j = 0; j < width; j++){
+// A executer lorsque le joueur perd
+function lose(){
+    clearInterval(animation);
+    alert('perdu !');
+}
 
-            // Si j'ai un bloc à cet endroit précis
-            if(map[i][j] == 1){
-                ctx.fillRect((j + 1) * unit, (i + 1) * unit, unit, unit);
+
+/* -----------------------------
+
+             LOOP
+
+ -----------------------------   */
+
+
+function loop(){
+    checkLines();
+
+    // Recupère s'il y a une collision
+    collision = checkCollision(container);
+
+    
+    // Traitement de l'information de la collision laterale
+    if((move == 'right' && collision == 'right') || (move == 'left' && collision == 'left')){ // S'il y a une collision, on arrete de se deplacer horizontalement et on change le boost en mode normal
+        move = 'none';
+        boost = false;
+        setGameSpeed(speed);
+    }
+    
+    // Traitement de l information de la collision verticale
+    if(collision == 'bottom'){ // Si le block courant touche le sol
+        container.moving = false;
+    }
+
+    
+    // Si le block courant n'est plus en mouvement, on creait un nouveau block
+    if(container.moving == false){
+
+        // CODE A DEBUGGER
+        for(var i = 0; i < container.blocks.length; i++){
+            for(var j = 0; j < container.blocks[i].length; j++){
+                if(container.blocks[i][j] == 1){
+                    var x = container.position.x + j;
+                    var y = container.position.y + i;
+
+                    if(map[y-1]){
+                        map[y-1][x-1] = 1;
+                    }
+                }
             }
         }
+        
+        generateContainer();
+    }
+    
+    for(var i = 0; i < container.blocks.length; i++){
+        for(var j = 0; j < container.blocks[i].length; j++){
+            
+            if(container.blocks[i][j] == 1){
+                var x = container.position.x + j;
+                var y = container.position.y + i;
+            }
+        }
+    }
+    
+    // On met à jour la position des blocks puis on les affiche
+    updateContainer(collision);
+    
+    clear();
+    drawElements();
+    
+    
+    if(checkLose(container)){
+        lose();
     }
 }
 
@@ -457,15 +441,15 @@ function drawMap(){
 addEventListener("keydown",function(e){
     var key = e.keyCode;
     
-    collision = checkCollision(containers[containers.length-1]);
+    collision = checkCollision(container);
     
-    if(key == 37 && collision != 'left'){ // si la direction est différente de la précédente
+    if(key == 37 && collision != 'left'){ // si la direction est differente de la precedente
         move = 'left';
         setBoost(true);
     }else if(key == 38){
         move = 'top';
         clearInterval(animation); 
-        rotate(containers[currentContainer-1]);
+        rotate(container);
         drawElements();
     }else if(key == 39 && collision != 'right'){
         move = 'right';
@@ -478,11 +462,8 @@ addEventListener("keydown",function(e){
     }
 }, false);
 
-// Detection des boutons directionnels (au lâché)
+// Detection des boutons directionnels (au lache)
 addEventListener("keyup",function(e){
     move = 'none';
     setBoost(false);
 }, false);
-
-
-
