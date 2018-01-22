@@ -40,9 +40,9 @@ function Container (){
 // Modèles de blocks tetris
 var containerModels = [
     [
-        [0, 0, 0, 0],
         [1, 1, 1, 1],
         [1, 0, 0, 0],
+        [0, 0, 0, 0],
         [0, 0, 0, 0]
     ],
     [
@@ -85,7 +85,6 @@ function init() {
     
     // Initialisation de la map
     initMap();
-    //console.log(map);
 
     // Définit une couleur de fond
     setFillStyle('#ff2f2f');
@@ -168,7 +167,7 @@ function drawContainers (){
 }
 
 // Met à jour les blocks tetris
-function updateContainers(){
+function updateContainers(collision){
     
     // Parcours les containers
     for(var i = 0; i < containers.length; i++){        
@@ -185,18 +184,40 @@ function updateContainers(){
 }
 
 // Effectue la rotation d'un block tetris
-function rotate(blocks){
+function rotate(container){
+    
     // Deplace les blocks dans un tableau de copie
-    for(var k = 0; k < blocks.length; k++){
-        for(var u = 0; u < blocks[k].length; u++){
-            copy[3 - u][k] = blocks[k][u];
+    for(var k = 0; k < container.blocks.length; k++){
+        for(var u = 0; u < container.blocks[k].length; u++){
+
+            if(container.blocks[k][u] == 1){
+
+            }
+        }
+    }
+    // Deplace les blocks dans un tableau de copie
+    for(var k = 0; k < container.blocks.length; k++){
+        for(var u = 0; u < container.blocks[k].length; u++){
+
+            copy[3 - u][k] = container.blocks[k][u];
+        }
+    }
+    
+    // Verifie si la rotation est possible (a cause des murs)
+    for(var k = 0; k < container.blocks.length; k++){
+        for(var u = 0; u < container.blocks[k].length; u++){
+            var x = container.position.x + u;
+            var y = container.position.y + k;
+            if(x <= 0 || x >= (width+1)){
+                return true;
+            }
         }
     }
 
     // Met à jour le tableau grâce à la copie
-    for(var k = 0; k < blocks.length; k++){
-        for(var u = 0; u < blocks[k].length; u++){
-            blocks[k][u] = copy[k][u];
+    for(var k = 0; k < container.blocks.length; k++){
+        for(var u = 0; u < container.blocks[k].length; u++){
+            container.blocks[k][u] = copy[k][u];
         }
     }
 }
@@ -224,6 +245,28 @@ function setBoost(activate){
     }
 }
 
+
+function checkLines(){
+    for(var i = 0; i < height; i++){
+        var total = 0;
+        for(var j = 0; j < width; j++){
+            if(map[i][j] == 1){
+                total++;
+            }
+        }
+        // A BEBUGGER
+        // Si une ligne est faite
+        if(total == width){
+            var line = i;
+            for(var u = 1; u < line; u++){
+                for(var k = 0; k < width; k++){
+                    map[u+1][k] = map[u][k];
+                }
+            }
+        }
+    }
+}
+
 // Revoie le côté dans lequel on se cogne (renvoie none si il n'y a pas de collision)
 function checkCollision(container){
     for(var i = 0; i < container.blocks.length; i++){
@@ -231,22 +274,38 @@ function checkCollision(container){
             if(container.blocks[i][j] == 1){
                 var x = container.position.x + j;
                 var y = container.position.y + i;
-
-                                 
-                console.log('y: '+y);            
-                if(y >= height){
+                
+                
+                if(y == height){
                     return 'bottom';
                 }
+            
+                
+                for(var k = 0; k < height; k++){
+                    for(var l = 0; l < width; l++){
+                        if(y == k && x == (l+1) && map[k][l] == 1 && (move == 'none' || move == 'bottom')){
+                            return 'bottom';
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+    for(var i = 0; i < container.blocks.length; i++){
+        for(var j = 0; j < container.blocks[i].length; j++){
+            if(container.blocks[i][j] == 1){
+                var x = container.position.x + j;
+                var y = container.position.y + i;
+                
                 
                 for(var k = 0; k < height; k++){
                     for(var l = 0; l < width; l++){
 
                     
-                        if(y == k && x == l && map[k][l] == 1 && (move == 'none' || move == 'bottom')){
-                            return 'bottom';
-                        }else if(y == k && x == (l-1) && map[k][l] == 1 && move == 'right'){
+                        if(y == k && x == l && map[k][l] == 1 && move == 'right'){
                             return 'right';
-                        }else if(y == k && x == (l+1) && map[k][l] == 1 && move == 'left'){
+                        }else if(y == k && x == (l+2) && map[k][l] == 1 && move == 'left'){
                             return 'left';
                         }
                     }
@@ -275,13 +334,15 @@ function checkCollision(container){
 
 generateContainer();
 
-
 var collision = 'none';
 
 function loop(){
+    checkLines();
+
     // Recupère s'il y a une collision
     collision = checkCollision(containers[containers.length-1]);
-    //console.log(collision);
+    
+    
     
     // Traitement de l'information de la collision latérale
     if((move == 'right' && collision == 'right') || (move == 'left' && collision == 'left')){ // S'il y a une collision, on arrete de se déplacer horizontalement et on change le boost en mode normal
@@ -294,8 +355,6 @@ function loop(){
     if(collision == 'bottom'){ // Si le block courant touche le sol
         containers[containers.length-1].moving = false;
     }
-    
-
 
     
     // Si le block courant n'est plus en mouvement, on créait un nouveau block
@@ -304,15 +363,13 @@ function loop(){
         // CODE A DEBUGGER
         container = containers[containers.length-1];
         for(var i = 0; i < container.blocks.length; i++){
-            //console.log(map);
             for(var j = 0; j < container.blocks[i].length; j++){
                 if(container.blocks[i][j] == 1){
                     var x = container.position.x + j;
                     var y = container.position.y + i;
 
-
                     if(map[y-1]){
-                        map[y-1][x] = 1;
+                        map[y-1][x-1] = 1;
                     }
                 }
             }
@@ -321,15 +378,60 @@ function loop(){
         generateContainer();
     }
     
+    for(var i = 0; i < containers[containers.length-1].blocks.length; i++){
+        for(var j = 0; j < containers[containers.length-1].blocks[i].length; j++){
+            
+            if(containers[containers.length-1].blocks[i][j] == 1){
+                var x = containers[containers.length-1].position.x + j;
+                var y = containers[containers.length-1].position.y + i;
+            }
+        }
+    }
+    
     // On met à jour la position des blocks puis on les affiche
-    updateContainers();
-
+    updateContainers(collision);
     drawElements();
+    
+    
+    if(checkLose(containers[containers.length-1])){
+        alert('perdu !');
+    }
+}
+
+function drawLimit(){
+    ctx.beginPath();
+    ctx.setLineDash([5]);
+    ctx.moveTo(unit, unit);
+    ctx.lineTo(unit * (width + 1), unit);
+    ctx.stroke();
 }
 
 function drawElements(){
     drawContainers();
     drawMap();
+    drawLimit();
+}
+
+
+function checkLose(container){
+    for(var i = 0; i < container.blocks.length; i++){
+        for(var j = 0; j < container.blocks[i].length; j++){
+            if(container.blocks[i][j] == 1){
+                var x = container.position.x + j;
+                var y = container.position.y + i;
+                
+                
+            
+                for(var l = 0; l < width; l++){
+                    if(x == (l+1) && map[1][l] == 1){
+                        return true;
+                    }
+                }
+
+            }
+        }
+    }
+    return false;
 }
 
 function drawMap(){
@@ -338,7 +440,7 @@ function drawMap(){
 
             // Si j'ai un bloc à cet endroit précis
             if(map[i][j] == 1){
-                ctx.fillRect(j * unit, (i + 1) * unit, unit, unit);
+                ctx.fillRect((j + 1) * unit, (i + 1) * unit, unit, unit);
             }
         }
     }
@@ -359,11 +461,11 @@ addEventListener("keydown",function(e){
     
     if(key == 37 && collision != 'left'){ // si la direction est différente de la précédente
         move = 'left';
-        setBoost(true);    
+        setBoost(true);
     }else if(key == 38){
         move = 'top';
         clearInterval(animation); 
-        rotate(containers[currentContainer-1].blocks);
+        rotate(containers[currentContainer-1]);
         drawElements();
     }else if(key == 39 && collision != 'right'){
         move = 'right';
