@@ -2,11 +2,46 @@
 <html>
 <head>
     <title>Tetris</title>
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,600,700" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
-<canvas id="canvas"></canvas>
+<div id="home">
+    <div class="modal">
+        <h1>Tetris</h1>
+        <p>This game is a remastered one. You can play it by clicking on the button below. Have fun !</p>
+        <button id="start">Start a new game</button>
+        <span class="github">See on <a target="_blank" href="https://github.com/AxelPariss/tetris">Github</a></span>
+    </div>
+</div>
+<div id="game">
+    <button id="back">Back</button>
+    <div class="controls">
+        <button id="pause">Pause</button>
+        <button id="reset">Reset</button>
+        <span id="status"></span>
+    </div>
+    <canvas id="canvas"></canvas>
+</div>
 </body>
 </html>
 
+<style>
+    #back{
+        position: absolute;
+        top: 20px;
+        left: 20px;
+    }
+    .controls{
+        position: absolute;
+        top: 20px;
+        right: 20px;
+    }
+</style>
 
-<script src="app.js"></script>
+<script src="assets/js/app.js"></script>
+
+
+<script>
+
+</script>

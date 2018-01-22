@@ -14,6 +14,8 @@ var height = 20; // in unit
 
 var move = 'none'; // Correspond au movement defini par les touches directionnelles
 
+var pause = false;
+
 var boost = false;
 var speed = 500;
 var boostSpeed = 45;
@@ -28,7 +30,7 @@ var container; // Contient le block courant (qui est en mouvement)
 function Container (){
     this.position = {x : Math.floor(width / 2), y : 0}; // Positionne le block au milieu
     this.blocks = getRandomBlocks();
-    this.color = "#F00000";
+    this.color = "#000";
     this.moving = true;
 }
 
@@ -76,6 +78,8 @@ var copy = [
  -----------------------------   */
 
 function init() {
+    clearInterval(animation);
+    
     canvas.width = (width + 2) * unit;
     canvas.height = (height + 2) * unit;
     
@@ -83,16 +87,18 @@ function init() {
     initMap();
 
     // Definit une couleur de fond
-    setFillStyle('#f00');
+    setFillStyle('#df4c41');
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     clear(); // Efface le fond
     
     // Lance le jeu
     animation = setInterval(loop, speed);
     generateContainer();
+    
+    // Infos
+    setStatus('Jeu en cours');
 }
 
-init();
 
 
 /* -----------------------------
@@ -144,7 +150,7 @@ function generateContainer(){
 
 // Dessine les blocks tetris
 function drawContainer(){
-    ctx.fillStyle = 'black';
+    ctx.fillStyle = container.color;
     
     if(container.moving == true){
         // Parcours les lignes
@@ -360,6 +366,19 @@ function lose(){
     alert('perdu !');
 }
 
+// Execute une pause (ou reprend le jeu)
+function togglePause(){
+    if(pause == false){
+        pause = true;
+        setStatus('Jeu en pause');
+        clearInterval(animation);
+    }else{
+        pause = false;
+        setStatus('Jeu en cours');
+        setGameSpeed(speed);
+    }
+}
+
 
 /* -----------------------------
 
@@ -441,29 +460,78 @@ function loop(){
 addEventListener("keydown",function(e){
     var key = e.keyCode;
     
-    collision = checkCollision(container);
+    if(key == 80){
+        togglePause();
+    }
     
-    if(key == 37 && collision != 'left'){ // si la direction est differente de la precedente
-        move = 'left';
-        setBoost(true);
-    }else if(key == 38){
-        move = 'top';
-        clearInterval(animation); 
-        rotate(container);
-        drawElements();
-    }else if(key == 39 && collision != 'right'){
-        move = 'right';
-        setBoost(true);
-    }else if(key == 40){
-        move = 'bottom';
-        if(boost == false){
+    if(pause == false){
+
+        collision = checkCollision(container);
+
+        if(key == 37 && collision != 'left'){ // si la direction est differente de la precedente
+            move = 'left';
             setBoost(true);
+        }else if(key == 38){
+            move = 'top';
+            clearInterval(animation); 
+            rotate(container);
+            drawElements();
+        }else if(key == 39 && collision != 'right'){
+            move = 'right';
+            setBoost(true);
+        }else if(key == 40){
+            move = 'bottom';
+            if(boost == false){
+                setBoost(true);
+            }
         }
+        
     }
 }, false);
 
 // Detection des boutons directionnels (au lache)
 addEventListener("keyup",function(e){
-    move = 'none';
-    setBoost(false);
+    if(pause == false){
+        move = 'none';
+        setBoost(false);
+    }
 }, false);
+
+
+
+
+
+
+var startBtn = document.querySelector('#start');
+var resetBtn = document.querySelector('#reset');
+var backBtn = document.querySelector('#back');
+var pauseBtn = document.querySelector('#pause');
+var statusSpan = document.querySelector('#status');
+var home = document.querySelector('#home');
+var game = document.querySelector('#game');
+
+function setStatus(status){
+    statusSpan.innerHTML = status;
+}
+    
+startBtn.addEventListener('click', function(){
+    home.style.display = 'none';
+    game.style.display = 'block';
+    
+    init();
+});
+
+        
+backBtn.addEventListener('click', function(){
+    home.style.display = 'block';
+    game.style.display = 'none';
+});
+    
+
+pauseBtn.addEventListener('click', function(){
+    togglePause();
+});
+
+resetBtn.addEventListener('click', function(){
+    init();
+});
