@@ -7,15 +7,22 @@
 var canvas = document.getElementById('canvas');
 var ctx = canvas.getContext('2d');
 
+// Elements HTML
+var home = document.querySelector('#home');
+var game = document.querySelector('#game');
+var startBtn = document.querySelector('#start');
+
 var unit = 20; // Unite du jeu (en pixel)
 
 var width = 15; // in unit
 var height = 20; // in unit
 
+
 var move = 'none'; // Correspond au movement defini par les touches directionnelles
 
 var pause = false;
 
+var score;
 var boost = false;
 var speed = 500;
 var boostSpeed = 45;
@@ -23,6 +30,8 @@ var animation;
 var map = []; // Contient les blocks qui seront positionnes
 
 var collision = 'none';
+
+limitThickness = 2; // In pixel
 
 var container; // Contient le block courant (qui est en mouvement)
 
@@ -37,15 +46,21 @@ function Container (){
 // Modèles de blocks tetris
 var containerModels = [
     [
-        [1, 1, 1, 1],
-        [1, 0, 0, 0],
         [0, 0, 0, 0],
+        [0, 1, 1, 1],
+        [0, 1, 0, 0],
         [0, 0, 0, 0]
     ],
     [
+        [0, 1, 0, 0],
         [1, 1, 0, 0],
-        [1, 1, 0, 0],
+        [1, 0, 0, 0],
+        [0, 0, 0, 0]
+    ],
+    [
         [0, 0, 0, 0],
+        [0, 1, 1, 0],
+        [0, 1, 1, 0],
         [0, 0, 0, 0]
     ],
     [
@@ -55,9 +70,9 @@ var containerModels = [
         [0, 1, 0, 0]
     ],
     [
+        [0, 0, 0, 0],
         [0, 1, 0, 0],
         [1, 1, 1, 0],
-        [0, 0, 0, 0],
         [0, 0, 0, 0]
     ]
 ];
@@ -70,6 +85,44 @@ var copy = [
     [0, 0, 0, 0]
 ];
 
+// Taille de la canvas
+windowWidth = canvas.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+
+windowHeight = canvas.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+
+// Taille de la zone de jeu
+gameWidth = (width + 2) * unit;
+gameHeight = (height + 2) * unit;
+
+gameOffsetX = (windowWidth - gameWidth)/2; // Centrer le jeu (decalage horizontal)
+gameOffsetY = 170; // Decalage vertical
+
+// Boutons
+var buttons = {
+  back : {
+      x : 20,
+      y : 20,
+      text : 'Back',
+      width : 100,
+      height : 40
+  },  
+  pause : {
+      x : windowWidth - 320,
+      y : 20,
+      text : 'Pause',
+      width : 120,
+      height : 40
+  },  
+  reset : {
+      x : windowWidth - 170,
+      y : 20,
+      text : 'Reset',
+      width : 120,
+      height : 40
+  },  
+};
+
+
 
 /* -----------------------------
 
@@ -77,28 +130,32 @@ var copy = [
 
  -----------------------------   */
 
+function initCanvas() {
+    canvas.width = windowWidth;
+    canvas.height = windowHeight;
+}
+
 function init() {
+    
+    score = 0;
     clearInterval(animation);
     
-    canvas.width = (width + 2) * unit;
-    canvas.height = (height + 2) * unit;
-    
-    // Initialisation de la map
-    initMap();
+    initMap(); // Initialisation de la map
 
     // Definit une couleur de fond
     setFillStyle('#df4c41');
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(gameOffsetX, gameOffsetY, gameWidth, gameHeight);
+    
     clear(); // Efface le fond
     
-    // Lance le jeu
-    animation = setInterval(loop, speed);
-    generateContainer();
     
-    // Infos
-    setStatus('Jeu en cours');
+    // Lance le jeu
+    generateContainer();
+    drawElements();
+    animation = setInterval(loop, speed);
+    
+    setStatus('Jeu en cours'); // Infos
 }
-
 
 
 /* -----------------------------
@@ -109,7 +166,7 @@ function init() {
 
 // Efface la zone de jeu
 function clear(){
-    ctx.clearRect(unit, 0, canvas.width - 2 * unit, canvas.height - unit);
+    ctx.clearRect(gameOffsetX + unit, gameOffsetY, gameWidth - 2 * unit, gameHeight - unit);
 }
 
 // Renvoie un element aleatoire dans un tableau
@@ -138,6 +195,15 @@ function initMap(){
     }
 }
 
+// Change le status du jeu
+function setStatus(status){
+    ctx.clearRect(windowWidth - 320, 65, 120, 30);
+    ctx.font = "13px Montserrat";
+    ctx.fillStyle = "#df4c41";
+    ctx.textAlign = "center";
+    ctx.fillText(status, windowWidth - 262, 85); 
+}
+
 // Renvoie un modèle tetris aleatoire
 function getRandomBlocks(){
     return getRandomItem(containerModels);
@@ -145,6 +211,7 @@ function getRandomBlocks(){
 
 // Genere et ajoute un nouveau block tetris
 function generateContainer(){
+    score++;
     container = new Container();
 }
 
@@ -160,7 +227,7 @@ function drawContainer(){
 
                 // Si j'ai un bloc à cet endroit precis
                 if(index == 1){
-                    ctx.fillRect((container.position.x + k) * unit, (container.position.y + u) * unit, unit, unit);
+                    ctx.fillRect(gameOffsetX + (container.position.x + k) * unit, gameOffsetY + (container.position.y + u) * unit, unit, unit);
                 }
             }
         }
@@ -186,8 +253,21 @@ function rotate(container){
     // Deplace les blocks dans un tableau de copie
     for(var k = 0; k < container.blocks.length; k++){
         for(var u = 0; u < container.blocks[k].length; u++){
-
+            
             copy[3 - u][k] = container.blocks[k][u];
+        }
+    }
+    
+    // Verifie qu il n y a pas de collision avec les blocks deja poses
+    for(var k = 0; k < container.blocks.length; k++){
+        for(var u = 0; u < container.blocks[k].length; u++){
+            
+            var x = container.position.x + u;
+            var y = container.position.y + k;
+            
+            if(copy[k][u] == 1 && map[y][x-1] == 1){
+                return true;
+            }
         }
     }
     
@@ -201,12 +281,75 @@ function rotate(container){
             }
         }
     }
-
+            
     // Met à jour le tableau grâce à la copie
     for(var k = 0; k < container.blocks.length; k++){
         for(var u = 0; u < container.blocks[k].length; u++){
             container.blocks[k][u] = copy[k][u];
         }
+    }
+}
+
+// Change de page
+function switchPage(page){
+    if(page == 'home'){
+        home.style.display = 'block';
+        game.style.display = 'none';
+    }else if(page == 'game'){
+        home.style.display = 'none';
+        game.style.display = 'block';  
+    }
+}
+
+//Function to get the mouse position
+function getMousePos(canvas, event) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+    };
+}
+
+//Function to check whether a point is inside a rectangle
+function isInside(pos, button){
+    return pos.x > button.x && pos.x < button.x+button.width && pos.y < button.y+button.height && pos.y > button.y;
+}
+
+// Dessine un bouton
+function drawButton(x, y, width, height, text) {
+    var radius = 22;
+    radius = {tl: radius, tr: radius, br: radius, bl: radius};
+    ctx.beginPath();
+    ctx.moveTo(x + radius.tl, y);
+    ctx.lineTo(x + width - radius.tr, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+    ctx.lineTo(x + width, y + height - radius.br);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+    ctx.lineTo(x + radius.bl, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+    ctx.lineTo(x, y + radius.tl);
+    ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+    ctx.closePath();
+    ctx.strokeStyle = "#DF4C41";
+    ctx.fillStyle = "#DF4C41";
+    ctx.fill();
+    ctx.stroke();
+    
+    ctx.font = "15px Montserrat";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText(text, x + width/2, y + 25); 
+}
+
+// Affiche les boutons
+function drawButtons(){
+    for(var button in buttons){
+        var x = buttons[button].x;
+        var y = buttons[button].y;
+        var text = buttons[button].text;
+        var width = buttons[button].width;
+        var height = buttons[button].height;
+        drawButton(x, y, width, height, text);
     }
 }
 
@@ -231,14 +374,17 @@ function setBoost(activate){
 // Dessine la limite (en haut du jeu)
 function drawLimit(){
     ctx.beginPath();
-    ctx.setLineDash([5]);
-    ctx.moveTo(unit, unit);
-    ctx.lineTo(unit * (width + 1), unit);
+    ctx.setLineDash([10]);
+    ctx.moveTo(gameOffsetX + unit, gameOffsetY + limitThickness);
+    ctx.lineTo(gameOffsetX + unit * (width + 1), gameOffsetY + limitThickness);
+    ctx.lineWidth = limitThickness;
+    ctx.strokeStyle = "#afafaf";
     ctx.stroke();
 }
 
 // Dessine les elements
 function drawElements(){
+    clear();
     drawContainer();
     drawMap();
     drawLimit();
@@ -253,7 +399,7 @@ function checkLines(){
                 total++;
             }
         }
-        // A BEBUGGER
+        
         // Si une ligne est faite
         if(total == width){
             var line = i;
@@ -321,7 +467,6 @@ function checkCollision(container){
             }
         }
     }
-    
     return 'none';
 }
 
@@ -332,7 +477,7 @@ function drawMap(){
 
             // Si j'ai un bloc à cet endroit precis
             if(map[i][j] == 1){
-                ctx.fillRect((j + 1) * unit, (i + 1) * unit, unit, unit);
+                ctx.fillRect(gameOffsetX + (j + 1) * unit, gameOffsetY + (i + 1) * unit, unit, unit);
             }
         }
     }
@@ -363,7 +508,13 @@ function checkLose(container){
 // A executer lorsque le joueur perd
 function lose(){
     clearInterval(animation);
-    alert('perdu !');
+    alert('Vous avez perdu ! Vous avez fait un score de : '+score);
+    var newGame = prompt('Voulez-vous rejouer ? (oui ou non)');
+    if(newGame == 'oui'){
+       init();
+    }else{
+        switchPage('home');
+    }
 }
 
 // Execute une pause (ou reprend le jeu)
@@ -390,12 +541,12 @@ function togglePause(){
 function loop(){
     checkLines();
 
-    // Recupère s'il y a une collision
+    // Recupère s il y a une collision
     collision = checkCollision(container);
 
     
-    // Traitement de l'information de la collision laterale
-    if((move == 'right' && collision == 'right') || (move == 'left' && collision == 'left')){ // S'il y a une collision, on arrete de se deplacer horizontalement et on change le boost en mode normal
+    // Traitement de l information de la collision laterale
+    if((move == 'right' && collision == 'right') || (move == 'left' && collision == 'left')){ // S il y a une collision, on arrete de se deplacer horizontalement et on change le boost en mode normal
         move = 'none';
         boost = false;
         setGameSpeed(speed);
@@ -407,10 +558,9 @@ function loop(){
     }
 
     
-    // Si le block courant n'est plus en mouvement, on creait un nouveau block
+    // Si le block courant n est plus en mouvement, on creait un nouveau block
     if(container.moving == false){
-
-        // CODE A DEBUGGER
+        
         for(var i = 0; i < container.blocks.length; i++){
             for(var j = 0; j < container.blocks[i].length; j++){
                 if(container.blocks[i][j] == 1){
@@ -440,18 +590,17 @@ function loop(){
     // On met à jour la position des blocks puis on les affiche
     updateContainer(collision);
     
-    clear();
     drawElements();
-    
     
     if(checkLose(container)){
         lose();
     }
 }
 
+
 /* -----------------------------
 
-     BOUTONS DIRECTIONNELS
+            EVENEMENTS
 
  -----------------------------   */
 
@@ -497,41 +646,30 @@ addEventListener("keyup",function(e){
     }
 }, false);
 
-
-
-
-
-
-var startBtn = document.querySelector('#start');
-var resetBtn = document.querySelector('#reset');
-var backBtn = document.querySelector('#back');
-var pauseBtn = document.querySelector('#pause');
-var statusSpan = document.querySelector('#status');
-var home = document.querySelector('#home');
-var game = document.querySelector('#game');
-
-function setStatus(status){
-    statusSpan.innerHTML = status;
-}
-    
+// Clic sur le bouton de la page d accueil
 startBtn.addEventListener('click', function(){
     home.style.display = 'none';
     game.style.display = 'block';
     
+    initCanvas();
+    drawButtons();
     init();
 });
 
-        
-backBtn.addEventListener('click', function(){
-    home.style.display = 'block';
-    game.style.display = 'none';
-});
+// Clic sur les boutons
+canvas.addEventListener('click', function(evt) {
+    var mousePosition = getMousePos(canvas, evt);
+
+    if (isInside(mousePosition, buttons.back)) {
+        switchPage('home');
+    }else if(isInside(mousePosition, buttons.pause)) {
+        console.log('pause');
+        togglePause();
+    }else if(isInside(mousePosition, buttons.reset)) {
+        init();
+    }
     
+}, false);
 
-pauseBtn.addEventListener('click', function(){
-    togglePause();
-});
 
-resetBtn.addEventListener('click', function(){
-    init();
-});
+
