@@ -204,6 +204,15 @@ function setStatus(status){
     ctx.fillText(status, windowWidth - 262, 85); 
 }
 
+// Change le status du jeu
+function displayScore(){
+    ctx.clearRect(windowWidth - 130, 100, 200, 100);
+    ctx.font = "15px Montserrat";
+    ctx.fillStyle = "#df4c41";
+    ctx.textAlign = "left";
+    ctx.fillText('Score : '+ score, windowWidth - 100, 180); 
+}
+
 // Renvoie un modèle tetris aleatoire
 function getRandomBlocks(){
     return getRandomItem(containerModels);
@@ -212,6 +221,7 @@ function getRandomBlocks(){
 // Genere et ajoute un nouveau block tetris
 function generateContainer(){
     score++;
+    displayScore();
     container = new Container();
 }
 
@@ -403,9 +413,9 @@ function checkLines(){
         // Si une ligne est faite
         if(total == width){
             var line = i;
-            for(var u = 1; u < line; u++){
+            for(var u = line; u > 0; u--){
                 for(var k = 0; k < width; k++){
-                    map[u+1][k] = map[u][k];
+                    map[u][k] = map[u-1][k];
                 }
             }
         }
@@ -508,7 +518,7 @@ function checkLose(container){
 // A executer lorsque le joueur perd
 function lose(){
     clearInterval(animation);
-    alert('Vous avez perdu ! Vous avez fait un score de : '+score);
+    alert('Vous avez perdu ! Vous avez fait un score de : '+ (score-1));
     var newGame = prompt('Voulez-vous rejouer ? (oui ou non)');
     if(newGame == 'oui'){
        init();
@@ -611,7 +621,9 @@ addEventListener("keydown",function(e){
     
     if(key == 80){
         togglePause();
-    }
+    }else if(key == 82){
+        init();
+     }
     
     if(pause == false){
 
@@ -663,7 +675,6 @@ canvas.addEventListener('click', function(evt) {
     if (isInside(mousePosition, buttons.back)) {
         switchPage('home');
     }else if(isInside(mousePosition, buttons.pause)) {
-        console.log('pause');
         togglePause();
     }else if(isInside(mousePosition, buttons.reset)) {
         init();
