@@ -17,6 +17,7 @@ var unit = 20; // Unite du jeu (en pixel)
 var width = 15; // in unit
 var height = 20; // in unit
 
+var loseStatus;
 
 var move = 'none'; // Correspond au movement defini par les touches directionnelles
 
@@ -123,6 +124,22 @@ var buttons = {
 };
 
 
+var buttonsLose = { 
+  oui : {
+      x : (windowWidth-90)/2 - 60,
+      y : 350,
+      text : 'Oui',
+      width : 90,
+      height : 40
+  },
+  non : {
+      x : (windowWidth-90)/2 + 60,
+      y : 350,
+      text : 'Non',
+      width : 90,
+      height : 40
+  }
+};
 
 /* -----------------------------
 
@@ -138,6 +155,7 @@ function initCanvas() {
 function init() {
     
     score = 0;
+    loseStatus = false;
     clearInterval(animation);
     
     initMap(); // Initialisation de la map
@@ -351,6 +369,33 @@ function drawButton(x, y, width, height, text) {
     ctx.fillText(text, x + width/2, y + 25); 
 }
 
+// Dessine un bouton
+function drawButtonWhite(x, y, width, height, text) {
+    var radius = 22;
+    ctx.setLineDash([]);
+    radius = {tl: radius, tr: radius, br: radius, bl: radius};
+    ctx.beginPath();
+    ctx.moveTo(x + radius.tl, y);
+    ctx.lineTo(x + width - radius.tr, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+    ctx.lineTo(x + width, y + height - radius.br);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+    ctx.lineTo(x + radius.bl, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+    ctx.lineTo(x, y + radius.tl);
+    ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+    ctx.closePath();
+    ctx.strokeStyle = "#fff";
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+    ctx.stroke();
+    
+    ctx.font = "15px Montserrat";
+    ctx.fillStyle = "#DF4C41";
+    ctx.textAlign = "center";
+    ctx.fillText(text, x + width/2, y + 25); 
+}
+
 // Affiche les boutons
 function drawButtons(){
     for(var button in buttons){
@@ -517,14 +562,25 @@ function checkLose(container){
 
 // A executer lorsque le joueur perd
 function lose(){
-    clearInterval(animation);
-    alert('Vous avez perdu ! Vous avez fait un score de : '+ (score-1));
-    var newGame = prompt('Voulez-vous rejouer ? (oui ou non)');
-    if(newGame == 'oui'){
-       init();
+    if(loseStatus == true){
+       return true;
     }else{
-        switchPage('home');
+        loseStatus = true;
     }
+    clearInterval(animation);
+    modalWidth = 500;
+    ctx.fillStyle = "#df4c41";
+    ctx.fillRect((windowWidth - modalWidth)/2, 150, modalWidth, 300);
+    
+    ctx.font = "15px Montserrat";
+    ctx.fillStyle = "white";
+    ctx.textAlign = "center";
+    ctx.fillText('Vous avez perdu ! Vous avez fait un score de : '+ score, windowWidth/2, 215); 
+    
+    ctx.fillText('Voulez-vous rejouer ?', windowWidth/2, 310); 
+    
+    drawButtonWhite(buttonsLose.non.x, buttonsLose.non.y, buttonsLose.non.width, buttonsLose.non.height, buttonsLose.non.text);
+    drawButtonWhite(buttonsLose.oui.x, buttonsLose.oui.y, buttonsLose.oui.width, buttonsLose.oui.height, buttonsLose.oui.text);
 }
 
 // Execute une pause (ou reprend le jeu)
@@ -617,6 +673,9 @@ function loop(){
 
 // Detection des boutons directionnels (à l'appui)
 addEventListener("keydown",function(e){
+    if(loseStatus == true){ // Empeche de continuer le jeu même si on a perdu
+        return true;
+    }
     var key = e.keyCode;
     
     if(key == 80){
@@ -625,7 +684,7 @@ addEventListener("keydown",function(e){
         init();
      }
     
-    if(pause == false){
+    if(pause == false && loseStatus == false){
 
         collision = checkCollision(container);
 
@@ -652,6 +711,9 @@ addEventListener("keydown",function(e){
 
 // Detection des boutons directionnels (au lache)
 addEventListener("keyup",function(e){
+    if(loseStatus == true){ // Empeche de continuer le jeu même si on a perdu
+        return true;
+    }
     if(pause == false){
         move = 'none';
         setBoost(false);
@@ -677,6 +739,12 @@ canvas.addEventListener('click', function(evt) {
     }else if(isInside(mousePosition, buttons.pause)) {
         togglePause();
     }else if(isInside(mousePosition, buttons.reset)) {
+        init();
+    }else if(isInside(mousePosition, buttonsLose.non)) {
+        switchPage('home');
+    }else if(isInside(mousePosition, buttonsLose.oui)) {
+        initCanvas();
+        drawButtons();
         init();
     }
     
